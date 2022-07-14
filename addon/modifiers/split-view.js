@@ -1,91 +1,63 @@
-import { setModifierManager } from '@ember/modifier';
-import EmberObject from '@ember/object';
-import { assign } from '@ember/polyfills';
-import Split from 'split.js';
+import Modifier from "ember-modifier";
+import Split from "split.js";
 
-export function createSplit(el, args) {
-  let { children } = el;
+export const createSplit = (el, args) => {
+  const children = el.children;
 
-  if (children.length > 1) {
-    let isVertical = args.direction === 'vertical';
-    el.style.display = 'flex';
-    el.style['flex-direction'] = isVertical ? 'column': 'row';
-
-    return Split(children, assign({}, {
-      gutterSize: 7,
-      elementStyle(dimension, size, gutterSize) {
-        let amount = `calc(${size}% - ${gutterSize}px)`;
-        let props = {
-          'flex-basis': amount,
-          [isVertical ? 'max-height' : 'max-width']: amount
-        };
-
-        return props;
-      },
-      gutterStyle(dimension, gutterSize) {
-        return {
-          'flex-basis': `${gutterSize}px`
-        }
-      }
-    }, args))
+  if (children.length <= 1) {
+    return null;
   }
 
-  return null;
-}
+  const isVertical = args.direction === "vertical";
 
+  el.style.display = "flex";
+  el.style.flexDirection = isVertical ? "column" : "row";
 
-class SplitModifierManager {
-  constructor(owner) {
-    this.owner = owner;
-  }
+  const elementStyle = (_dimension, size, gutterSize) => {
+    const amount = `calc(${size}% - ${gutterSize}px)`;
+    const props = {
+      "flex-basis": amount,
+      [isVertical ? "max-height" : "max-width"]: amount,
+    };
 
-  createModifier(factory, args) {
-    return factory.create(args);
-  }
+    return props;
+  };
 
-  installModifier(instance, element, args) {
-    let { positional, named } = args;
-    instance.element = element;
-    instance.didInsertElement(element, positional, named);
-  }
+  const gutterStyle = (_dimension, gutterSize) => {
+    return {
+      "flex-basis": `${gutterSize}px`,
+    };
+  };
 
-  updateModifier(instance, args) {
-    let { positional, named } = args;
-    instance.didUpdate(instance.element, positional, named);
-  }
+  const defaultArgs = {
+    gutterSize: 7,
+    elementStyle,
+    gutterStyle,
+  };
 
+  return Split(children, Object.assign({}, defaultArgs, args));
+};
 
-  destroyModifier(instance) {
-    instance.willDestroyElement();
-  }
-}
+export default class SplitViewModifier extends Modifier {
+  splitInstance = null;
 
-class SplitViewModifier extends EmberObject {
-  didInsertElement(el, positional, args) {
-    this.splitInstance = createSplit(el, args);
-  }
-
-  didUpdate(el, positional, args) {
-    let { rerender } = args;
-    if (this.rerender !== rerender) {
-      if (this.splitInstance) {
-        this.splitInstance.destroy();
-        this.splitInstance = null;
-      }
-
-      this.splitInstance = createSplit(el, args);
-      this.rerender = rerender;
-    }
-  }
-
-  willDestroyElement() {
+  destroyInstance() {
     if (this.splitInstance) {
       this.splitInstance.destroy();
       this.splitInstance = null;
     }
   }
-}
 
-export default setModifierManager(
-  (owner) => new SplitModifierManager(owner), SplitViewModifier
-);
+  didReceiveArguments() {
+    this.splitInstance = createSplit(this.element, this.args.named);
+  }
+
+  didUpdateArguments() {
+    this.destroyInstance();
+    this.splitInstance = createSplit(this.element, this.args.named);
+  }
+
+  willDestroy() {
+    this.destroyInstance();
+  }
+}

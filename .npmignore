@@ -9,9 +9,11 @@
 /.bowerrc
 /.editorconfig
 /.ember-cli
+/.eslintcache
 /.env*
 /.eslintignore
 /.eslintrc.js
+/.git
 /.gitignore
 /.template-lintrc.js
 /.travis.yml
@@ -23,6 +25,7 @@
 /testem.js
 /tests/
 /yarn.lock
+/yarn-error.log
 .gitkeep
 
 # ember-try
